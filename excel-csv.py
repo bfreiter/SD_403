@@ -1,74 +1,76 @@
 import machine
+from machine import Pin
 import utime
 import os
 
-# Define button A and button B pins (Active LOW)
-button_A = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)  # GPIO 15 for Button A
-button_B = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP)  # GPIO 14 for Button B
+###Test LED's###
+led1 = Pin(1, Pin.OUT)
+led2 = Pin(2, Pin.OUT)
+led1.off()
+led2.off()
 
-# Store power-up time
-power_up_time = utime.time()
+#Define Pins to represent left or right sides
+left = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP) #GPIO 15
+right = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP) #GPIO 14
 
-print("Waiting for button press...")
+#Checks what the startup time is, epoch integer
+startup_time = utime.time()
 
+#Loop Code
 while True:
-    # Initialize time variables for both buttons
-    time_str_A = "-"
-    time_str_B = "-"
-    recorded = False  # Flag to indicate if any button has been pressed
-
-    if button_A.value() == 0:  # Button A pressed (LOW)
-        utime.sleep_ms(50)  # Debounce
-        if button_A.value() == 0:  # Confirm still pressed
-            elapsed_time_A = utime.time() - power_up_time
-            
-            # Convert to minutes and seconds if over 60 sec
-            if elapsed_time_A >= 60:
-                minutes_A = elapsed_time_A // 60
-                seconds_A = elapsed_time_A % 60
-                time_str_A = f"{minutes_A} min {seconds_A} sec"
-            else:
-                time_str_A = f"{elapsed_time_A} sec"
-
-            print(f"Button A pressed after {time_str_A}")
-            recorded = True  # Mark that Button A was pressed
-
-            # Wait for button release to avoid duplicate logging
-            while button_A.value() == 0:
-                utime.sleep(0.1)
-
-    if button_B.value() == 0:  # Button B pressed (LOW)
-        utime.sleep_ms(50)  # Debounce
-        if button_B.value() == 0:  # Confirm still pressed
-            elapsed_time_B = utime.time() - power_up_time
-            
-            # Convert to minutes and seconds if over 60 sec
-            if elapsed_time_B >= 60:
-                minutes_B = elapsed_time_B // 60
-                seconds_B = elapsed_time_B % 60
-                time_str_B = f"{minutes_B} min {seconds_B} sec"
-            else:
-                time_str_B = f"{elapsed_time_B} sec"
-
-            print(f"Button B pressed after {time_str_B}")
-            recorded = True  # Mark that Button B was pressed
-
-            # Wait for button release to avoid duplicate logging
-            while button_B.value() == 0:
-                utime.sleep(0.1)
-
-    # Only write to CSV if either button was pressed
-    if recorded:
-        filename = "time_log.csv"
-        write_header = filename not in os.listdir()
+    #Set up default strings for csv for each side
+    left_string = "-"
+    right_string = "-"
+    press = False #Button needs to be pressed for csv writing
+    
+    if startup_time == 1609459201: #Therefore, do not have the actual time, have the default
         
-        with open(filename, "a") as file:
-            if write_header:
-                file.write("Elapsed Time Button A, Elapsed Time Button B\n")
-            
-            # Write the recorded time for each button in separate columns
-            file.write(f"{time_str_A}, {time_str_B}\n")
-            
-        print(f"Time recorded: {time_str_A}, {time_str_B} in {filename}")
+        led1.on() #Led for testing
         
+        if left.value() == 0: #Left button pressed
+            utime.sleep_ms(50) #Debounce protection
+            if left.value() == 0: #Still pressed
+                press = True #Button pressed, allow csv to write
+                time_since_L = utime.time() - startup_time #Find the time since startup
+                
+                #Display time in appropriate format
+                minutes_L = time_since_L // 60
+                seconds_L = time_since_L % 60
+                left_string = str(minutes_L) + " min " + str(seconds_L) + " sec"
+                
+                #Wait until button is released
+                while left.value() == 0:
+                    utime.sleep_ms(500)
+               
+        if right.value() == 0: #Left button pressed
+            utime.sleep_ms(50) #Debounce protection
+            if right.value() == 0: #Still pressed
+                press = True #Button pressed, allow csv to write
+                time_since_R = utime.time() - startup_time #Find the time since startup
+                
+                #Display time in appropriate format
+                minutes_R = time_since_R // 60
+                seconds_R = time_since_R % 60
+                right_string = str(minutes_R) + " min " + str(seconds_R) + " sec"
+                
+                #Wait until button is released
+                while right.value() == 0:
+                    utime.sleep_ms(500)
+        
+        #****Left Off
+        if press:
+            filename = "time_log.csv"
+            write_header = filename not in os.listdir()
+        
+            with open(filename, "a") as file:
+                if write_header:
+                    file.write("Elapsed Time Left Button, Elapsed Time Right Button\n")
+            
+                # Write the recorded time for each button in separate columns
+                file.write(f"{left_string}, {right_string}\n")
+                            
+    else:
+        led2.on()   
+        
+
 
