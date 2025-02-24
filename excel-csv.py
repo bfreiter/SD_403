@@ -30,10 +30,10 @@ if startup_time == 1609459201:
     no_startup_path = f"{parent_directory}/{no_startup_directory}"
     if no_startup_directory not in os.listdir(parent_directory):
         os.mkdir(no_startup_path)
-
-startup_path = f"{parent_directory}/{startup_directory}"
-if startup_directory not in os.listdir(parent_directory):
-    os.mkdir(startup_path)
+else:
+    startup_path = f"{parent_directory}/{startup_directory}"
+    if startup_directory not in os.listdir(parent_directory):
+        os.mkdir(startup_path)
 
 # Function to Determine Time in Readable Format
 def readable_time(epoch_int):
