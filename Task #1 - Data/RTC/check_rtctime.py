@@ -18,6 +18,6 @@ def format_time(datetime_tuple):
 current_time = rtc.datetime()
 
 
-print(format_time(rtc.datetime()))
+print(format_time(current_time))
 
 
