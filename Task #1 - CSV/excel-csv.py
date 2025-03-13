@@ -11,11 +11,11 @@ ledred.off() #Reset LED's
 ledgreen.off()
 
 #Buttons used to simulate light gate triggers on either side
-left = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
-right = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 14
+left = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
+right = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 14
 
-#Initialize I2C on Pico (GP20 = SDA and GP21 = SCL)to read RTC
-i2c = machine.I2C(0, scl=machine.Pin(21), sda=machine.Pin(20), freq=400000)
+#Initialize I2C on Pico (GP16 = SDA and GP17 = SCL)to read RTC
+i2c = machine.I2C(0, scl=machine.Pin(17), sda=machine.Pin(16), freq=400000)
 
 #Create DS3231 object (RTC)
 rtc = ds3231.DS3231(i2c)
@@ -56,16 +56,9 @@ while True:
     left_pressed = False
     right_pressed = False
     
-    if start_time[0] < 2024:  #RTC available
+    if start_time[0] > 2024:  #RTC available
 
         ledgreen.on()  #LED for testing
-        
-        #Create the csv file if not already created
-        if not rtc_file_created: #File name based off the time at startup
-            file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv"
-            with open(file_name, 'w') as file:
-                file.write("Left, Right\n")
-            rtc_file_created = True
         
         if left.value() == 0:  #Left button pressed
             utime.sleep_ms(50)
@@ -87,30 +80,18 @@ while True:
 
         #Write to csv file if a button was pressed
         if left_pressed or right_pressed:
+            #Create the csv file if not already created
+            if not rtc_file_created: #File name based off the time at startup
+                file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv"
+                with open(file_name, 'w') as file:
+                    file.write("Left, Right\n")
+                rtc_file_created = True
+            
             with open(file_name, 'a') as file:
                 file.write(f"{left_string}, {right_string}\n")    
     
     else:  #No RTC available for some reason
         ledred.on()  #Red LED
-        
-        #File created flag is false
-        if no_rtc_file_created is False:
-            #Get existing files in Data folder
-            existing_files = os.listdir("Data")
-
-            #Start from 0 and find the next available filename
-            next_number = 0
-            while f"No_Time_{next_number}.csv" in existing_files:
-                next_number += 1  #Increment until an available number is found
-
-            #Filename
-            no_rtc_filename = f"Data/No_Time_{next_number}.csv"
-
-            #Create and write the file header if new
-            with open(no_rtc_filename, 'w') as file:
-                file.write(""""Warning! An Error has occurred, No RTC Time Detected!"\nLeft, Right\n""")
-                
-            no_rtc_file_created = True  #Set flag to prevent recreation
 
         if left.value() == 0:  #Left button pressed
             utime.sleep_ms(50)  #Debounce protection
@@ -136,5 +117,24 @@ while True:
         
         #Write to csv only if a button was pressed
         if left_pressed or right_pressed:
+            #File created flag is false
+            if no_rtc_file_created is False:
+                #Get existing files in Data folder
+                existing_files = os.listdir("Data")
+
+                #Start from 0 and find the next available filename
+                next_number = 0
+                while f"No_Time_{next_number}.csv" in existing_files:
+                    next_number += 1  #Increment until an available number is found
+
+                #Filename
+                no_rtc_filename = f"Data/No_Time_{next_number}.csv"
+
+                #Create and write the file header if new
+                with open(no_rtc_filename, 'w') as file:
+                    file.write(""""Warning! An Error has occurred, No RTC Time Detected!"\nLeft, Right\n""")
+                
+                no_rtc_file_created = True  #Set flag to prevent recreation
+            
             with open(no_rtc_filename, 'a') as file:
                 file.write(f"{left_string}, {right_string}\n")

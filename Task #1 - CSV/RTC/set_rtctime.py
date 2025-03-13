@@ -3,7 +3,7 @@ import ds3231
 import utime
 
 # Initialize I2C on Pico (GP20 = SDA, GP21 = SCL)
-i2c = machine.I2C(0, scl=machine.Pin(21), sda=machine.Pin(20), freq=400000)
+i2c = machine.I2C(0, scl=machine.Pin(17), sda=machine.Pin(16), freq=400000)
 
 # Create DS3231 object
 rtc = ds3231.DS3231(i2c)
@@ -11,7 +11,7 @@ rtc = ds3231.DS3231(i2c)
 # Set the time only once (adjust to your current time)
 # Format: (year, month, day, weekday, hour, minute, second)
 # Example: Set to 2025-02-17 14:30:00
-rtc.datetime((2025, 3, 10, 8, 35, 25, 0))  # Set current date and time
+rtc.datetime((2025, 3, 12, 21, 45, 35, 0))  # Set current date and time
 
 # Print the time to confirm
 while True:

@@ -3,7 +3,7 @@ import ds3231
 import utime
 
 # Initialize I2C on Pico (GP20 = SDA, GP21 = SCL)
-i2c = machine.I2C(0, scl=machine.Pin(21), sda=machine.Pin(20), freq=400000)
+i2c = machine.I2C(0, scl=machine.Pin(17), sda=machine.Pin(16), freq=400000)
 
 # Create DS3231 object
 rtc = ds3231.DS3231(i2c)
