@@ -88,7 +88,7 @@ while True:
                 rtc_file_created = True
             
             with open(file_name, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")    
+                file.write(f"'{left_string}, '{right_string}\n")    
     
     else:  #No RTC available for some reason
         ledred.on()  #Red LED
@@ -137,4 +137,4 @@ while True:
                 no_rtc_file_created = True  #Set flag to prevent recreation
             
             with open(no_rtc_filename, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")
+                file.write(f"'{left_string}, '{right_string}\n")
