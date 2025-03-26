@@ -57,7 +57,7 @@ while True:
     right_pressed = False
     
     if start_time[0] > 2024:  #RTC available
-
+ 
         ledgreen.on()  #LED for testing
         
         if left.value() == 0:  #Left button pressed
@@ -76,7 +76,7 @@ while True:
                 right_pressed = True
                 
                 while right.value() == 0:
-                    utime.sleep_ms(500)
+                    utime.sleep_ms(100)
 
         #Write to csv file if a button was pressed
         if left_pressed or right_pressed:
@@ -84,13 +84,16 @@ while True:
             if not rtc_file_created: #File name based off the time at startup
                 file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv"
                 with open(file_name, 'w') as file:
-                    file.write("Left, Right\n")
+                    file.write("#, Left, Right\n")
                 rtc_file_created = True
-            
+                row = 1
+                
             with open(file_name, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")    
+                file.write(f"{row}, {left_string}, {right_string}\n")
+                row += 1
     
     else:  #No RTC available for some reason
+        
         ledred.on()  #Red LED
 
         if left.value() == 0:  #Left button pressed
@@ -113,7 +116,7 @@ while True:
                 right_pressed = True
                 
                 while right.value() == 0:
-                    utime.sleep_ms(500)
+                    utime.sleep_ms(100)
         
         #Write to csv only if a button was pressed
         if left_pressed or right_pressed:
@@ -132,9 +135,11 @@ while True:
 
                 #Create and write the file header if new
                 with open(no_rtc_filename, 'w') as file:
-                    file.write(""""Warning! An Error has occurred, No RTC Time Detected! Time value is based off time since startup"\nLeft, Right\n""")
+                    file.write(""""Warning! An Error has occurred, No RTC Time Detected! Time value is based off time since startup"\n#, Left, Right\n""")
                 
                 no_rtc_file_created = True  #Set flag to prevent recreation
-            
+                row = 1
+                
             with open(no_rtc_filename, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")
+                file.write(f"{row}, {left_string}, {right_string}\n")
+                row += 1
