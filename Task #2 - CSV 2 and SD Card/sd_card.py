@@ -78,13 +78,12 @@ def delete_pico_Data(folder):
             path = "{}/{}".format(folder, item) #File Path
             if os.stat(path)[0] & 0x4000:  #Item is a folder
                 delete_pico_Data(path)  #Delete 'Data' folder contents
-                os.rmdir(path)  #Delete empty folder ***
             else: #Item is a file
                 os.remove(path) #Deletes file
     except OSError:
         pass #Folder exists or is empty
 
-# Main loop
+#Main loop
 while True:
     if det_pin.value() == 1: #SD inserted
         ledgreen.on()
@@ -129,6 +128,7 @@ while True:
 
                 ledgreen.off() #Indicate with  LED
                 ledred.on()
+                
                 #Flash yellow to show SD needs to be removed
                 while det_pin.value() == 1:
                     ledyellow.on()
