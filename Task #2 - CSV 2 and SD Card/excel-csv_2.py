@@ -5,14 +5,24 @@ import os
 import ds3231  #For Real Time Clock (RTC)
 
 #Setup LED's
-ledred = Pin(0, Pin.OUT) #Red
-ledgreen = Pin(1, Pin.OUT) #Green
-ledred.off() #Reset LED's
-ledgreen.off()
+ledgreen = Pin(0, Pin.OUT) #Red
+ledred = Pin(1, Pin.OUT) #Green
+ledblue = Pin(2, Pin.OUT) #Red
+ledyellow = Pin(3, Pin.OUT) #Green
+ledgreen.off() #Reset LED's
+ledred.off()
+ledblue.off()
+ledyellow.on()
 
 #Buttons used to simulate light gate triggers on either side
-left = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
-right = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 14
+start_test = machine.Pin(14, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
+end_test = machine.Pin(15, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 14
+
+left_in = machine.Pin(12, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
+left_out = machine.Pin(13, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
+
+right_in = machine.Pin(11, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
+right_out = machine.Pin(10, machine.Pin.IN, machine.Pin.PULL_UP)  #GPIO 15
 
 #Initialize I2C on Pico (GP16 = SDA and GP17 = SCL)to read RTC
 i2c = machine.I2C(0, scl=machine.Pin(17), sda=machine.Pin(16), freq=400000)
@@ -25,12 +35,6 @@ def format_time(datetime_tuple):
     year, month, day, _, hour, minute, second, _ = datetime_tuple
     return f"{year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
 
-#Read the time from the RTC
-start_time = rtc.datetime()
-
-#Take time for reference (Should be 01/01/2021)
-startup = utime.time()
-
 #Convert reference time to hours, minutes, and seconds
 def convert_seconds(time_since):
     hours = time_since // 3600
@@ -38,103 +42,111 @@ def convert_seconds(time_since):
     seconds = time_since % 60
     return hours, minutes, seconds
 
+def calculate_elapsed_time(start, end):
+    t1 = start[4] * 3600 + start[5] * 60 + start[6]
+    t2 = end[4] * 3600 + end[5] * 60 + end[6]
+    elapsed_seconds = convert_seconds(t2 - t1)
+    return f"{elapsed_seconds[0]:02}:{elapsed_seconds[1]:02}:{elapsed_seconds[2]:02}"
+
 #Ensure the Data folder exists
 if "Data" not in os.listdir():
     os.mkdir("Data")
 
 #Initialize flags for file creation
 rtc_file_created = False
-no_rtc_file_created = False
+row = 1
+
+left_entry_time = None
+right_entry_time = None
+
+started = False
+
+test_rtc = rtc.datetime()
 
 #Loop Code
 while True:
-    #Set up default strings for CSV for each side
-    left_string = ""
-    right_string = ""
-    
-    #Initialize flags that check if a button has been pressed
-    left_pressed = False
-    right_pressed = False
-    
-    if start_time[0] > 2024:  #RTC available
-
+    if test_rtc[0] > 2024:  #RTC available
         ledgreen.on()  #LED for testing
-        
-        if left.value() == 0:  #Left button pressed
-            utime.sleep_ms(50)
-            if left.value() == 0:  #Still pressed
-                left_string = format_time(rtc.datetime())
-                left_pressed = True
-                
-                while left.value() == 0:
-                    utime.sleep_ms(100)
+        ledred.off()
+    else:
+        ledred.on()  #LED for testing
+        ledgreen.off()
 
-        if right.value() == 0:  #Right button pressed
+    if not started:
+        if start_test.value() == 0:
             utime.sleep_ms(50)
-            if right.value() == 0: 
-                right_string = format_time(rtc.datetime())
-                right_pressed = True
-                
-                while right.value() == 0:
-                    utime.sleep_ms(500)
-
-        #Write to csv file if a button was pressed
-        if left_pressed or right_pressed:
-            #Create the csv file if not already created
-            if not rtc_file_created: #File name based off the time at startup
-                file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv"
-                with open(file_name, 'w') as file:
-                    file.write("Left, Right\n")
-                rtc_file_created = True
-            
-            with open(file_name, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")    
+            if start_test.value() == 0:
+                started = True
+                #Read the time from the RTC
+                start_time = rtc.datetime()
+                rtc_file_created = False
+                ledyellow.off()
+                ledblue.on()
     
-    else:  #No RTC available for some reason
-        ledred.on()  #Red LED
-
-        if left.value() == 0:  #Left button pressed
-            utime.sleep_ms(50)  #Debounce protection
-            if left.value() == 0:  #Still pressed
-                time_since_L = utime.time() - startup #Count time since startup
-                left_time = convert_seconds(time_since_L) #Conver to readable time
-                left_string = f"{left_time[0]:02}:{left_time[1]:02}:{left_time[2]:02}"
-                left_pressed = True
-                
-                while left.value() == 0: #Debounce Protection
-                    utime.sleep_ms(100)
-
-        if right.value() == 0:  #Right button pressed
-            utime.sleep_ms(50)
-            if right.value() == 0: 
-                time_since_R = utime.time() - startup
-                right_time = convert_seconds(time_since_R)
-                right_string = f"{right_time[0]:02}:{right_time[1]:02}:{right_time[2]:02}"
-                right_pressed = True
-                
-                while right.value() == 0:
-                    utime.sleep_ms(500)
+    while started:
+        #Set up default strings for CSV for each side
+        left_in_string = ""
+        right_in_string = ""
+        left_out_string = ""
+        right_out_string = ""
+        left_time_string = ""
+        right_time_string = ""
         
-        #Write to csv only if a button was pressed
-        if left_pressed or right_pressed:
-            #File created flag is false
-            if no_rtc_file_created is False:
-                #Get existing files in Data folder
-                existing_files = os.listdir("Data")
+        if end_test.value() == 0:
+            utime.sleep_ms(50)
+            if end_test.value() == 0:
+                started = False
+                ledyellow.on()
+                ledblue.off()
+                break
+    
+        if start_time[0] > 2024:  #RTC available        
+            if left_in.value() == 0:  #Left button pressed
+                utime.sleep_ms(50)
+                if left_in.value() == 0:  #Still pressed
+                    left_entry_time = rtc.datetime()
+                    while left_in.value() == 0:
+                        utime.sleep_ms(100)
 
-                #Start from 0 and find the next available filename
-                next_number = 0
-                while f"No_Time_{next_number}.csv" in existing_files:
-                    next_number += 1  #Increment until an available number is found
+            if left_out.value() == 0 and left_entry_time:  #Left button pressed
+                utime.sleep_ms(50)
+                if left_out.value() == 0: 
+                    left_exit_time = rtc.datetime()
+                    left_time_string = calculate_elapsed_time(left_entry_time, left_exit_time)
+                    left_in_string = format_time(left_entry_time)  # Format RTC time for display
+                    left_out_string = format_time(left_exit_time)  # Format RTC time for display
+                    left_entry_time = None                   
+                    while left_out.value() == 0:
+                        utime.sleep_ms(100)
+                        
+            if right_in.value() == 0:  #Left button pressed
+                utime.sleep_ms(50)
+                if right_in.value() == 0:  #Still pressed
+                    right_entry_time = rtc.datetime()
+                    while right_in.value() == 0:
+                        utime.sleep_ms(100)
 
-                #Filename
-                no_rtc_filename = f"Data/No_Time_{next_number}.csv"
+            if right_out.value() == 0 and right_entry_time:  #Left button pressed
+                utime.sleep_ms(50)
+                if right_out.value() == 0: 
+                    right_exit_time = rtc.datetime()
+                    right_time_string = calculate_elapsed_time(right_entry_time, right_exit_time)
+                    right_in_string = format_time(right_entry_time)  # Format RTC time for display
+                    right_out_string = format_time(right_exit_time)  # Format RTC time for display
+                    right_entry_time = None                   
+                    while right_out.value() == 0:
+                        utime.sleep_ms(100)
 
-                #Create and write the file header if new
-                with open(no_rtc_filename, 'w') as file:
-                    file.write(""""Warning! An Error has occurred, No RTC Time Detected!"\nLeft, Right\n""")
-                
-                no_rtc_file_created = True  #Set flag to prevent recreation
-            
-            with open(no_rtc_filename, 'a') as file:
-                file.write(f"{left_string}, {right_string}\n")
+            # Write to CSV if any data recorded
+            if left_in_string or right_in_string:
+                if not rtc_file_created:
+                    file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv"
+                    with open(file_name, 'w') as file:
+                        file.write("#, Entered Left, Exited Left, Time Left, Entered Right, Exited Right, Time Right\n")
+                    rtc_file_created = True
+
+                with open(file_name, 'a') as file:
+                    file.write(f"{row}, {left_in_string}, {left_out_string}, {left_time_string}, {right_in_string}, {right_out_string}, {right_time_string}\n")
+                    row += 1
+        else:
+            break
