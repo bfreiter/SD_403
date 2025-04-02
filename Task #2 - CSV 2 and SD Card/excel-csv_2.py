@@ -60,9 +60,6 @@ right_entry_time = None
 
 started = False
 
-#Initialize row for CSV
-row = 1
-
 #Testing to see if rtc is accurate
 test_rtc = rtc.datetime()
 
@@ -145,6 +142,8 @@ while True:
             if left_in_string or right_in_string:
                 if not rtc_file_created: #Create RTC if not already created
                     file_name = f"Data/{start_time[0]}-{start_time[1]:02}-{start_time[2]:02}_{start_time[4]:02}-{start_time[5]:02}-{start_time[6]:02}.csv" #Name it after the time test started at
+                    #Initialize row for CSV
+                    row = 1
                     with open(file_name, 'w') as file: #Write to the new CSV
                         file.write("#, Entered Left, Exited Left, Time Left, Entered Right, Exited Right, Time Right\n") #Create the column titles
                     rtc_file_created = True #Set Flag
