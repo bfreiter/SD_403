@@ -2,8 +2,8 @@ from machine import ADC, Pin
 import utime
 
 #Setup LDR's on A/D pins
-ldr_1 = ADC(26) 
-ldr_2 = ADC(27)
+ldr_1 = ADC(27) 
+ldr_2 = ADC(26)
 
 #Setup LEd's
 ledgreen = Pin(0, Pin.OUT)

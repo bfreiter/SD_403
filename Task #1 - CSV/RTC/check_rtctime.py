@@ -20,4 +20,3 @@ current_time = rtc.datetime()
 
 print(format_time(current_time))
 
-

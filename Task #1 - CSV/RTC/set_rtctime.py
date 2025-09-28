@@ -11,7 +11,7 @@ rtc = ds3231.DS3231(i2c)
 # Set the time only once (adjust to your current time)
 # Format: (year, month, day, weekday, hour, minute, second)
 # Example: Set to 2025-02-17 14:30:00
-rtc.datetime((2025, 3, 26, 9, 5, 35, 0))  # Set current date and time
+rtc.datetime((2025, 9, 28, 1, 15, 5, 0))  # Set current date and time
 
 # Print the time to confirm
 while True:
