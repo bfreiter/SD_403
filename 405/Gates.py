@@ -48,30 +48,14 @@ file_name = None
 test_running = False
 
 # =========================================================
-# --- LEDs and Buzzer ---
+# --- LEDs ---
 # =========================================================
 status_led = Pin(config["status_led_pin"], Pin.OUT)
 sd_led = Pin(config["sd_led_pin"], Pin.OUT)
-buzzer = Pin(config["buzzer_pin"], Pin.OUT)
 
-# Reset LEDs and buzzer at startup
+# Reset LEDs at startup
 status_led.value(0)
 sd_led.value(0)
-buzzer.value(0)
-
-# Buzzer debounce
-last_buzzer_trigger = 0
-BUZZER_DEBOUNCE = 200  # ms
-
-def beep(duration_ms=100):
-    global last_buzzer_trigger
-    now = time.ticks_ms()
-    if time.ticks_diff(now, last_buzzer_trigger) < BUZZER_DEBOUNCE:
-        return
-    last_buzzer_trigger = now
-    buzzer.value(1)
-    time.sleep_ms(duration_ms)
-    buzzer.value(0)
 
 # =========================================================
 # --- Beam Sensors ---
@@ -97,11 +81,17 @@ destination = config["sd_destination"]
 sd_present = False
 
 # =========================================================
-# --- Buttons ---
+# --- Buttons (Polling Setup) ---
 # =========================================================
 test_button = Pin(config["test_button_pin"], Pin.IN, Pin.PULL_UP)
 download_button = Pin(config["download_button_pin"], Pin.IN, Pin.PULL_UP)
-last_download_trigger = 0
+
+last_test_state = 1  # pull-up, not pressed
+last_test_time = 0
+
+last_download_state = 1  # pull-up, not pressed
+last_download_time = 0
+
 DEBOUNCE_MS = config["download_debounce_ms"]
 
 # =========================================================
@@ -170,16 +160,6 @@ def stop_test():
     status_led.value(0)
     print("Test stopped, logging disabled")
 
-def test_toggle_callback(pin):
-    beep()
-    if test_button.value() == 0:
-        if test_running:
-            stop_test()
-        else:
-            start_new_test()
-
-test_button.irq(trigger=Pin.IRQ_FALLING, handler=test_toggle_callback)
-
 # =========================================================
 # --- SD Functions ---
 # =========================================================
@@ -241,12 +221,11 @@ def ensure_sd_data_folder():
 # --- SD Download Callback ---
 # =========================================================
 def download_callback(pin):
-    beep()
-    global sd_present, last_download_trigger
+    global sd_present, last_download_time
     now = time.ticks_ms()
-    if time.ticks_diff(now, last_download_trigger) < DEBOUNCE_MS:
+    if time.ticks_diff(now, last_download_time) < DEBOUNCE_MS:
         return
-    last_download_trigger = now
+    last_download_time = now
 
     if det_pin.value() == 1:
         mount_sd()
@@ -278,8 +257,6 @@ def download_callback(pin):
             pass
         sd_present = False
 
-download_button.irq(trigger=Pin.IRQ_FALLING, handler=download_callback)
-
 # =========================================================
 # --- SD Detect Callback ---
 # =========================================================
@@ -294,7 +271,32 @@ def sd_detect_callback(pin):
 det_pin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=sd_detect_callback)
 
 # =========================================================
-# --- Main Loop ---
+# --- Main Loop (Polling Buttons) ---
 # =========================================================
+# --- Main Loop (Polling Buttons) ---
 while True:
-    time.sleep(1)
+    now = time.ticks_ms()
+
+    # --- Test Button Polling (Edge Detection) ---
+    current_test_state = test_button.value()
+    if last_test_state == 1 and current_test_state == 0:
+        # Button just pressed
+        if time.ticks_diff(now, last_test_time) > DEBOUNCE_MS:
+            if test_running:
+                stop_test()
+            else:
+                start_new_test()
+            last_test_time = now
+    last_test_state = current_test_state  # update state
+
+    # --- Download Button Polling (Edge Detection) ---
+    current_download_state = download_button.value()
+    if last_download_state == 1 and current_download_state == 0:
+        # Button just pressed
+        if time.ticks_diff(now, last_download_time) > DEBOUNCE_MS:
+            download_callback(None)
+            last_download_time = now
+    last_download_state = current_download_state  # update state
+
+    time.sleep_ms(20)
+
