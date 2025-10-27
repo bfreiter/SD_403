@@ -18,8 +18,8 @@ except:
 # -------------------------------
 # Servo setup
 # -------------------------------
-servo1 = PWM(Pin(18))
-servo2 = PWM(Pin(19))
+servo1 = PWM(Pin(16))
+servo2 = PWM(Pin(17))
 servo1.freq(50)
 servo2.freq(50)
 
@@ -45,6 +45,13 @@ button_instant = Pin(4, Pin.IN, Pin.PULL_UP)
 button_delayed = Pin(5, Pin.IN, Pin.PULL_UP)
 
 # -------------------------------
+# Indicator pin (goes HIGH when any button pressed)
+# -------------------------------
+indicator_pin_num = 15  # change this pin as needed
+indicator = Pin(indicator_pin_num, Pin.OUT)
+indicator.value(0)
+
+# -------------------------------
 # Debounce helpers
 # -------------------------------
 DEBOUNCE_MS = 200
@@ -63,27 +70,34 @@ def button_pressed(button, last_time):
 # Main loop
 # -------------------------------
 while True:
+    any_pressed = False
+
     # Servo 1 toggle
     pressed, last_press_servo1 = button_pressed(button_servo1, last_press_servo1)
     if pressed:
         servo1_pos = 90 if servo1_pos == 0 else 0
+        any_pressed = True
 
     # Servo 2 toggle
     pressed, last_press_servo2 = button_pressed(button_servo2, last_press_servo2)
     if pressed:
         servo2_pos = 90 if servo2_pos == 0 else 0
+        any_pressed = True
 
     # Instant toggle both
     pressed, last_press_instant = button_pressed(button_instant, last_press_instant)
     if pressed:
         servo1_pos = 90 if servo1_pos == 0 else 0
         servo2_pos = 90 if servo2_pos == 0 else 0
+        any_pressed = True
 
     # Delayed toggle both
     pressed, last_press_delayed = button_pressed(button_delayed, last_press_delayed)
     if pressed:
         delayed_flag = True
+        any_pressed = True
 
+    # If delayed flag triggered, perform delayed toggle
     if delayed_flag:
         time.sleep(delay_time)
         servo1_pos = 90 if servo1_pos == 0 else 0
@@ -93,5 +107,8 @@ while True:
     # Apply servo positions
     set_servo_angle(servo1, servo1_pos)
     set_servo_angle(servo2, servo2_pos)
+
+    # Update indicator pin
+    indicator.value(1 if any_pressed else 0)
 
     time.sleep(0.01)
