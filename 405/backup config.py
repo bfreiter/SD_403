@@ -40,8 +40,5 @@
         "baudrate": 1000000,
         "cs": 13
     },
-
-    "sd_detect_pin": 14,
-
-    "pause_signal_pin": 26
+    "sd_detect_pin": 14
 }
